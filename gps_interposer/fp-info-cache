@@ -1,4 +1,4 @@
-23159190214413196
+23160902851814221
 Audio_Module
 Reverb_BTDR-1H
 Digital Reverberation Unit, http://www.belton.co.kr/inc/downfile.php?seq=17&file=pdf (footprint from http://www.uk-electronic.de/PDF/BTDR-1.pdf)
@@ -62292,6 +62292,13 @@ solder jumper open
 0
 5
 3
+Kicad_Personal
+MountingHole_3.7mm_3.9mm_Pad_TopBottom
+Mounting Hole 3.7mm
+mounting hole 3.7mm
+0
+3
+1
 Kicad_Personal
 Oscillator_OCXO_CTI_OSC5A2B02
 https://www.morion-us.com/catalog_pdf/mv317.pdf
