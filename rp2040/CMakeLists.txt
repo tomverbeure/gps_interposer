@@ -11,19 +11,19 @@ pico_sdk_init()
 
 if (TARGET tinyusb_device)
     # rest of your project
-    add_executable(hello_world
-        hello_world.c
+    add_executable(gps_interposer
+        gps_interposer.c
     )
 
     # enable usb output, disable uart output
-    pico_enable_stdio_usb(hello_world 1)
-    pico_enable_stdio_uart(hello_world 1)
+    pico_enable_stdio_usb(gps_interposer 1)
+    pico_enable_stdio_uart(gps_interposer 0)
     
     # Add pico_stdlib library which aggregates commonly used features
-    target_link_libraries(hello_world pico_stdlib)
+    target_link_libraries(gps_interposer pico_stdlib)
     
     # create map/bin/hex/uf2 file in addition to ELF.
-    pico_add_extra_outputs(hello_world)
+    pico_add_extra_outputs(gps_interposer)
 elseif(PICO_ON_DEVICE)
     message(WARNING "not building hello_usb because TinyUSB submodule is not initialized in the SDK")
 endif()
