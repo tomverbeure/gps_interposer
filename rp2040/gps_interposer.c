@@ -101,8 +101,12 @@ int main() {
     //    uart_putc(UART0_ID, msg[i]);
     xmit_msg(UART0_ID, msg, sizeof(msg));
 
+    char checksum = 0;
+
     while(true){
         char c = uart_getc(UART0_ID);
+
+        tx_buf[offset++] = c;
 
         if (false){
             printf("%02x ", c);
@@ -123,7 +127,7 @@ int main() {
 
             case WAIT_SECOND_0X40:{
                 if (c == 0x40){
-                    tx_buf[offset++] = c;
+                    checksum    = 0x00;
                     state = MESSAGE_ID0;
                 }
                 else{
@@ -133,15 +137,15 @@ int main() {
             }
 
             case MESSAGE_ID0:{
-                tx_buf[offset++]    = c;
                 msg_id[0]           = c;
+                checksum            ^= c;
                 state               = MESSAGE_ID1;
                 break;
             }
 
             case MESSAGE_ID1:{
-                tx_buf[offset++]    = c;
                 msg_id[1]           = c;
+                checksum            ^= c;
                 exp_msg_len         = get_msg_len(msg_id, false);
 
                 if (exp_msg_len == -1){
@@ -156,7 +160,7 @@ int main() {
                 break;
             }
             case MESSAGE_DATA:{
-                tx_buf[offset++]    = c;
+                checksum            ^= c;
 
                 if (offset == exp_msg_len-3){
                     state       = MESSAGE_CHECKSUM;
@@ -164,22 +168,35 @@ int main() {
                 break;
             }
             case MESSAGE_CHECKSUM:{
-                tx_buf[offset++]    = c;
-                state               = MESSAGE_TERMINATOR0;
+                if (c == checksum){
+                    state               = MESSAGE_TERMINATOR0;
+                }
+                else{
+                    state               = WAIT_FIRST_0X40;
+                }
                 break;
             }
 
             case MESSAGE_TERMINATOR0:{
-                tx_buf[offset++]    = c;
-                state               = MESSAGE_TERMINATOR1;
+                if (c == 0x0d){
+                    state               = MESSAGE_TERMINATOR1;
+                }
+                else{
+                    state               = WAIT_FIRST_0X40;
+                }
                 break;
             }
 
             case MESSAGE_TERMINATOR1:{
-                tx_buf[offset++]    = c;
-                state               = WAIT_FIRST_0X40;
+                if (c == 0x0a){
+                    state               = WAIT_FIRST_0X40;
 
-                xmit_msg(UART1_ID, tx_buf, offset);
+                    xmit_msg(UART1_ID, tx_buf, offset);
+                    uart_putc(UART1_ID, checksum);
+                }
+                else{
+                    state               = WAIT_FIRST_0X40;
+                }
                 break;
             }
         }
