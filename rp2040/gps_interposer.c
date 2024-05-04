@@ -82,6 +82,17 @@ void xmit_msg(void *uart_id, char msg[], int len)
     }
 }
 
+char calc_checksum(char msg[], int start, int end)
+{
+    char checksum   = 0;
+
+    for(int i=start;i<=end;++i){
+        checksum ^= msg[i];
+    }
+
+    return checksum;
+}
+
 int main() {
     stdio_init_all();
     hw_init();
@@ -89,6 +100,7 @@ int main() {
     enum eState state = WAIT_FIRST_0X40;
 
     char msg_id[10] = "\0\0\0";
+
     char tx_buf[1024];
     int offset  = 0;
     int exp_msg_len = 0;
@@ -191,8 +203,11 @@ int main() {
                 if (c == 0x0a){
                     state               = WAIT_FIRST_0X40;
 
+                    char new_checksum = calc_checksum(tx_buf, 2, offset-4);
+
                     xmit_msg(UART1_ID, tx_buf, offset);
                     uart_putc(UART1_ID, checksum);
+                    uart_putc(UART1_ID, new_checksum);
                 }
                 else{
                     state               = WAIT_FIRST_0X40;
