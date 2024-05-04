@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include "pico/stdlib.h"
 #include "hardware/uart.h"
 
@@ -202,6 +203,31 @@ int main() {
             case MESSAGE_TERMINATOR1:{
                 if (c == 0x0a){
                     state               = WAIT_FIRST_0X40;
+
+                    if (strcmp(msg_id, "Ha") == 0){
+                        struct tm date  = { 0 };
+
+                        date.tm_mday    = tx_buf[4];
+                        date.tm_mon     = tx_buf[5] - 1;
+                        date.tm_year    = (tx_buf[6] * 256) + tx_buf[7] - 1900; // Year since 1900
+
+                        time_t time = mktime(&date);
+                    
+                        int weeks_to_add = 1024;
+                        time_t seconds_to_add = weeks_to_add * 7 * 24 * 60 * 60;
+                    
+                        time += seconds_to_add;
+                    
+                        struct tm new_date; 
+                        localtime_r(&time, &new_date);
+
+                        tx_buf[4]       = new_date.tm_mday;
+                        tx_buf[5]       = new_date.tm_mon + 1;
+
+                        int new_year    = new_date.tm_year + 1900;
+                        tx_buf[6]       = new_year >> 8;
+                        tx_buf[7]       = new_year & 255;
+                    }
 
                     char new_checksum = calc_checksum(tx_buf, 2, offset-4);
 
