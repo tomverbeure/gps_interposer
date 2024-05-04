@@ -75,6 +75,13 @@ int get_msg_len(char *msg_id, bool req)
     return -1;
 }
 
+void xmit_msg(void *uart_id, char msg[], int len)
+{
+    for(int i=0;i<len;++i){
+        uart_putc(uart_id, msg[i]);
+    }
+}
+
 int main() {
     stdio_init_all();
     hw_init();
@@ -86,10 +93,22 @@ int main() {
     int offset  = 0;
     int exp_msg_len = 0;
 
+
+    // <<< Co - utc/ionospheric data input: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [44], [13, 10] - 29 - 6390504500.0
+    char msg[]  = {64, 64, 67, 111, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 44, 13, 10 };
+
+    //for(int i=0;i<sizeof(msg);++i)
+    //    uart_putc(UART0_ID, msg[i]);
+    xmit_msg(UART0_ID, msg, sizeof(msg));
+
     while(true){
         char c = uart_getc(UART0_ID);
-        printf("%02x ", c);
-        uart_putc(UART1_ID, c);
+
+        if (false){
+            printf("%02x ", c);
+            uart_putc(UART1_ID, c);
+            continue;
+        }
 
         switch(state){
             case WAIT_FIRST_0X40:{
@@ -159,6 +178,8 @@ int main() {
             case MESSAGE_TERMINATOR1:{
                 tx_buf[offset++]    = c;
                 state               = WAIT_FIRST_0X40;
+
+                xmit_msg(UART1_ID, tx_buf, offset);
                 break;
             }
         }
