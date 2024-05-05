@@ -231,6 +231,8 @@ int main() {
 
                     char new_checksum = calc_checksum(tx_buf, 2, offset-4);
 
+                    tx_buf[offset-3]    = new_checksum;
+
                     xmit_msg(UART1_ID, tx_buf, offset);
                     //uart_putc(UART1_ID, checksum);
                     //uart_putc(UART1_ID, new_checksum);
