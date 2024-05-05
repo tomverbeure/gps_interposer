@@ -207,17 +207,18 @@ int main() {
                     if (strcmp(msg_id, "Ha") == 0){
                         struct tm date  = { 0 };
 
+                        // Extract time from packet
                         date.tm_mday    = tx_buf[4];
                         date.tm_mon     = tx_buf[5] - 1;
                         date.tm_year    = (tx_buf[6] * 256) + tx_buf[7] - 1900; // Year since 1900
 
-                        time_t time = mktime(&date);
+                        // Add 1024 weeks by adding the number of days. 
+                        date.tm_mday    += 1024 * 7;
+
+                        // Normalize...
+                        time_t time     = mktime(&date);
                     
-                        int weeks_to_add = 1024;
-                        time_t seconds_to_add = weeks_to_add * 7 * 24 * 60 * 60;
-                    
-                        time += seconds_to_add;
-                    
+                        // Extract date
                         struct tm new_date; 
                         localtime_r(&time, &new_date);
 
