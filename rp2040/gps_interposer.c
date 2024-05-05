@@ -121,10 +121,10 @@ int main() {
 
         tx_buf[offset++] = c;
 
-        if (false){
+        if (true){
             printf("%02x ", c);
-            uart_putc(UART1_ID, c);
-            continue;
+            //uart_putc(UART1_ID, c);
+            //continue;
         }
 
         switch(state){
@@ -232,8 +232,8 @@ int main() {
                     char new_checksum = calc_checksum(tx_buf, 2, offset-4);
 
                     xmit_msg(UART1_ID, tx_buf, offset);
-                    uart_putc(UART1_ID, checksum);
-                    uart_putc(UART1_ID, new_checksum);
+                    //uart_putc(UART1_ID, checksum);
+                    //uart_putc(UART1_ID, new_checksum);
                 }
                 else{
                     state               = WAIT_FIRST_0X40;
