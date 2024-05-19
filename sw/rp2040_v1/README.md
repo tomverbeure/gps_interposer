@@ -11,3 +11,18 @@ GPS signal.
 This version requires commands to arrive fully before they can be patched and
 retransmitted. A new version can patch messages as needed on-the-fly.
 
+To build:
+
+* Set the `PICO_SDK_PATH` to your local clone of the [Raspberry pico SDK](https://github.com/raspberrypi/pico-sdk).
+
+    E.g. `export PICO_SDK_PATH=/home/tom/projects/pico-sdk`
+
+* Create `build` directory under the `rp2040_v1` directory
+* Build:
+
+    ```sh
+cd build
+cmake ..
+make
+    ```
+    
