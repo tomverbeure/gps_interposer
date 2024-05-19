@@ -20,9 +20,9 @@ To build:
 * Create `build` directory under the `rp2040_v1` directory
 * Build:
 
-    ```sh
+```sh
 cd build
 cmake ..
 make
-    ```
+```
     
