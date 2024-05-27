@@ -5,7 +5,7 @@
 #include "hardware/uart.h"
 
 // https://github.com/ForsakenNGS/Pico_WS2812
-#include "WS2812.hpp"
+#include "../shared/WS2812.hpp"
 
 #define UART0_ID            uart0
 #define UART0_TX_PIN        0

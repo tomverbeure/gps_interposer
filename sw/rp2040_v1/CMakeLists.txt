@@ -13,10 +13,10 @@ if (TARGET tinyusb_device)
     # rest of your project
     add_executable(gps_interposer
         gps_interposer.cpp
-        WS2812.cpp
+        ../shared/WS2812.cpp
     )
 
-    pico_generate_pio_header(gps_interposer ${CMAKE_CURRENT_LIST_DIR}/WS2812.pio)
+    pico_generate_pio_header(gps_interposer ${CMAKE_CURRENT_LIST_DIR}/../shared/WS2812.pio)
 
     # enable usb output, disable uart output
     pico_enable_stdio_usb(gps_interposer 1)
