@@ -162,7 +162,7 @@ int main() {
         }
         else{
             if (time_us_64() > next_led_flip_time_us){
-                printf("%d ", led_state);
+                //printf("%d ", led_state);
                 next_led_flip_time_us   += LED_BLINK_PERIOD_US;
 
                 led_state   = led_state ? 0 : 1;
@@ -174,10 +174,8 @@ int main() {
 
         tx_buf[offset++] = c;
 
-        if (true){
+        if (false){
             printf("%02x ", c);
-            //uart_putc(UART1_ID, c);
-            //continue;
         }
 
         switch(state){
@@ -257,13 +255,17 @@ int main() {
                 if (c == 0x0a){
                     state               = WAIT_FIRST_0X40;
 
+                    printf("msg: %s\n", msg_id);
+
                     if (strcmp(msg_id, "Ha") == 0){
                         struct tm date  = { 0 };
 
                         // Extract time from packet
-                        date.tm_mday    = tx_buf[4];
-                        date.tm_mon     = tx_buf[5] - 1;
+                        date.tm_mon     = tx_buf[4] - 1;
+                        date.tm_mday    = tx_buf[5];
                         date.tm_year    = (tx_buf[6] * 256) + tx_buf[7] - 1900; // Year since 1900
+
+                        printf("Original date: %d/%d/%d\n", date.tm_year + 1900, date.tm_mon+1, date.tm_mday);
 
                         // Add 1024 weeks by adding the number of days. 
                         date.tm_mday    += 1024 * 7;
@@ -275,21 +277,19 @@ int main() {
                         struct tm new_date; 
                         localtime_r(&time, &new_date);
 
-                        tx_buf[4]       = new_date.tm_mday;
-                        tx_buf[5]       = new_date.tm_mon + 1;
+                        tx_buf[4]       = new_date.tm_mon + 1;
+                        tx_buf[5]       = new_date.tm_mday;
 
                         int new_year    = new_date.tm_year + 1900;
                         tx_buf[6]       = new_year >> 8;
                         tx_buf[7]       = new_year & 255;
+
+                        printf("Adjusted date: %d/%d/%d\n", new_date.tm_year + 1900, new_date.tm_mon+1, new_date.tm_mday);
+
+                        char new_checksum = calc_checksum(tx_buf, 2, offset-4);
+                        tx_buf[offset-3]    = new_checksum;
                     }
-
-                    char new_checksum = calc_checksum(tx_buf, 2, offset-4);
-
-                    tx_buf[offset-3]    = new_checksum;
-
                     xmit_msg(UART1_ID, tx_buf, offset);
-                    //uart_putc(UART1_ID, checksum);
-                    //uart_putc(UART1_ID, new_checksum);
                 }
                 else{
                     state               = WAIT_FIRST_0X40;
