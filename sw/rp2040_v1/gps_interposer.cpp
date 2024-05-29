@@ -18,7 +18,7 @@
 #define UART1_BAUD_RATE     9600
 
 #define LED_PIN             16
-#define LED_LENGTH 1
+#define LED_LENGTH          1
 #define LED_BLINK_PERIOD_US 1000000
 
 enum eState {
