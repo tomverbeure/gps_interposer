@@ -4,17 +4,26 @@
 #include "pico/stdlib.h"
 #include "hardware/uart.h"
 
+// https://github.com/ForsakenNGS/Pico_WS2812
+#include "../shared/WS2812.hpp"
+
 #include "../shared/m12_parser.h"
 
+// UART0: module
 #define UART0_ID            uart0
 #define UART0_TX_PIN        0
 #define UART0_RX_PIN        1
 #define UART0_BAUD_RATE     9600
 
+// UART1: carrier/motherboard
 #define UART1_ID            uart1
 #define UART1_TX_PIN        4
 #define UART1_RX_PIN        5
 #define UART1_BAUD_RATE     9600
+
+#define LED_PIN             16
+#define LED_LENGTH          1
+#define LED_BLINK_PERIOD_US 1000000
 
 void hw_init()
 {
@@ -36,34 +45,69 @@ void xmit_msg(uart_inst *uart_id, char msg[], int len)
     }
 }
 
-int main() {
-    stdio_init_all();
-    hw_init();
-
-    M12Parser parser;
-
-
-    // <<< Co - utc/ionospheric data input: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [44], [13, 10] - 29 - 6390504500.0
-    char msg[]  = {64, 64, 67, 111, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 44, 13, 10 };
-
-    xmit_msg(UART0_ID, msg, sizeof(msg));
-
-    char checksum = 0;
-
-    while(true){
-        char c = uart_getc(UART0_ID);
-
-        if (true){
-            printf("%02x ", c);
-            //uart_putc(UART1_ID, c);
-            //continue;
-        }
-
-        #if 0
+void test_alive()
+{
+    while(1){
         printf("Hello, world!\n");
         uart_puts(UART0_ID, "Hello world UART0\n");
         uart_puts(UART1_ID, "Hello world UART1\n");
         sleep_ms(1000);
-        #endif
+    }
+}
+
+int main() {
+    stdio_init_all();
+    hw_init();
+
+    WS2812 ledStrip(LED_PIN, LED_LENGTH, pio0, 0, WS2812::FORMAT_RGB);
+
+    ledStrip.fill( WS2812::RGB(64, 0, 0) );
+    ledStrip.show();
+
+    M12Parser rx_parser;
+    M12Parser tx_parser;
+
+    uint64_t    next_led_flip_time_us   = time_us_64() + LED_BLINK_PERIOD_US;
+    int         led_state = 1;
+
+    while(true){
+        char c_from_module;
+        char c_from_carrier;
+
+        if (uart_is_readable(UART0_ID)){
+            c_from_module = uart_getc(UART0_ID);
+            next_led_flip_time_us  = time_us_64() + LED_BLINK_PERIOD_US;
+
+            if (led_state != 2){
+                ledStrip.fill( WS2812::RGB(0, 64, 0) );
+                ledStrip.show();
+            }
+            led_state   = 2;
+
+            uart_putc(UART1_ID, c_from_module);
+        }
+
+        if (uart_is_readable(UART1_ID)){
+            c_from_carrier = uart_getc(UART1_ID);
+            next_led_flip_time_us  = time_us_64() + LED_BLINK_PERIOD_US;
+
+            if (led_state != 2){
+                ledStrip.fill( WS2812::RGB(0, 64, 0) );
+                ledStrip.show();
+            }
+            led_state   = 2;
+
+            uart_putc(UART0_ID, c_from_carrier);
+        }
+
+        if (time_us_64() > next_led_flip_time_us){
+            //printf("%d ", led_state);
+            next_led_flip_time_us   += LED_BLINK_PERIOD_US;
+
+            led_state   = led_state ? 0 : 1;
+            ledStrip.fill( WS2812::RGB(64 * led_state, 0, 0) );
+            ledStrip.show();
+            continue;
+        }
     }
 }
