@@ -136,12 +136,11 @@ int main() {
     int exp_msg_len = 0;
 
 
+    #if 0
     // <<< Co - utc/ionospheric data input: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [44], [13, 10] - 29 - 6390504500.0
     char msg[]  = {64, 64, 67, 111, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 44, 13, 10 };
-
-    //for(int i=0;i<sizeof(msg);++i)
-    //    uart_putc(UART0_ID, msg[i]);
     xmit_msg(UART0_ID, msg, sizeof(msg));
+    #endif
 
     char checksum = 0;
 
