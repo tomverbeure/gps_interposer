@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+
 #include "pico/stdlib.h"
 #include "hardware/uart.h"
 
@@ -286,9 +287,40 @@ int main() {
 
                         printf("Adjusted date: %d/%d/%d\n", new_date.tm_year + 1900, new_date.tm_mon+1, new_date.tm_mday);
 
+                        // Set cold start to 0
+                        tx_buf[129]     = tx_buf[129] & 127;
+
+                        // Set clock bias to some number
+                        tx_buf[133]     = 29;
+                        tx_buf[134]     = 0;
+
+                        // Set oscillator offset to some number
+                        tx_buf[135]     = 1;
+                        tx_buf[136]     = 1;
+                        tx_buf[137]     = 0;
+                        tx_buf[138]     = 0;
+
                         char new_checksum = calc_checksum(tx_buf, 2, offset-4);
                         tx_buf[offset-3]    = new_checksum;
                     }
+                    else if (strcmp(msg_id, "Hn") == 0){
+                        // time solution accuracy
+                        tx_buf[12]      = 0xff;
+                        tx_buf[13]      = 0xff;
+
+                        char new_checksum = calc_checksum(tx_buf, 2, offset-4);
+                        tx_buf[offset-3]    = new_checksum;
+                    }
+                    else if (strcmp(msg_id, "Co") == 0){
+                        char co_data[] = { 36, 1, 253, 0, 67, 0, 251, 4, 0, 0, 0, 1, 0, 0, 0, 1, 18, 36, 4, 137, 7, 18 };
+                        for(int i=0;i<sizeof(co_data); ++i){
+                            tx_buf[i+4] = co_data[i];
+                        }
+
+                        char new_checksum = calc_checksum(tx_buf, 2, offset-4);
+                        tx_buf[offset-3]    = new_checksum;
+                    }
+
                     xmit_msg(UART1_ID, tx_buf, offset);
                 }
                 else{
