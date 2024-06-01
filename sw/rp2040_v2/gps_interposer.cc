@@ -59,11 +59,29 @@ void test_alive()
     }
 }
 
-struct tx_element
+typedef struct 
 {
     int     wait_us;
     char    data;
-};
+} tx_element;
+
+tx_element tx_buf[1024];
+int tx_buf_wr_ptr   = 0;
+int tx_buf_rd_ptr   = 0;
+
+bool        cur_tx_active = false;
+tx_element  cur_tx;
+
+void uart_paced_xmit(int wait_us, char data)
+{
+    tx_element e;
+
+    e.wait_us   = wait_us;
+    e.data      = data;
+
+    tx_buf[tx_buf_wr_ptr] = e;
+    tx_buf_wr_ptr   = (tx_buf_wr_ptr + 1) % 1024;
+}
 
 int main() {
     stdio_init_all();
@@ -79,10 +97,6 @@ int main() {
 
     uint64_t    next_led_flip_time_us   = time_us_64() + LED_BLINK_PERIOD_US;
     int         led_state = 1;
-
-    char tx_buf[1024];
-    int tx_buf_wr_ptr   = 0;
-    int tx_buf_rd_ptr   = 0;
 
     uint64_t    next_uart_tx_time_us    = time_us_64();
 
@@ -101,15 +115,13 @@ int main() {
             }
             led_state   = 2;
 
-            tx_buf[tx_buf_wr_ptr] = c_from_carrier;
-            tx_buf_wr_ptr   = (tx_buf_wr_ptr + 1) % 1024;
-
+            uart_paced_xmit(2000, c_from_carrier);
 
             bool req_msg_complete = req_parser.parse(c_from_carrier);
             if (req_msg_complete){
                 printf("req : %s - %d\n", req_parser.get_msg_id(), req_parser.get_msg_len(req_parser.get_msg_id()) );
 
-                if (strcmp(req_parser.get_msg_id(), "Cf") == 0){
+                if (strcmp(req_parser.get_msg_id(), "Gd") == 0){
                     printf("Insert Gb...\n");
                     // Insert time correction command
                     char gb_set_msg[]  = { '@',  '@', 'G', 'b', 
@@ -129,12 +141,8 @@ int main() {
                     gb_set_msg[sizeof(gb_set_msg)-3]  = req_parser.calc_checksum(gb_set_msg, 2, 13);
 
                     for(int i=0;i<sizeof(gb_set_msg);++i){
-                        tx_buf[tx_buf_wr_ptr]   = gb_set_msg[i];
-                        tx_buf_wr_ptr   = (tx_buf_wr_ptr + 1) % 1024;
+                        uart_paced_xmit(i==0 ? 50000 : 2000, gb_set_msg[i]);
                     }
-                    //xmit_msg(UART0_ID, gb_set_msg, sizeof(gb_set_msg));
-
-                    next_uart_tx_time_us    = time_us_64() + 50000;
 
                     #if 0
                     char gb_query_msg[]  = { '@',  '@', 'G', 'b', 
@@ -156,11 +164,17 @@ int main() {
             }
         }
 
-        if (tx_buf_rd_ptr != tx_buf_wr_ptr){
-            if (time_us_64() > next_uart_tx_time_us){
-                uart_putc(UART0_ID, tx_buf[tx_buf_rd_ptr]);
-                tx_buf_rd_ptr   = (tx_buf_rd_ptr + 1) % 1024;
-                next_uart_tx_time_us    = time_us_64() + 2000;
+        if (tx_buf_rd_ptr != tx_buf_wr_ptr || cur_tx_active){
+            if (!cur_tx_active){
+                cur_tx_active           = true;
+                cur_tx                  = tx_buf[tx_buf_rd_ptr];
+                tx_buf_rd_ptr           = (tx_buf_rd_ptr + 1) % 1024;
+
+                next_uart_tx_time_us    = time_us_64() + cur_tx.wait_us;
+            }
+            else if (time_us_64() > next_uart_tx_time_us){
+                uart_putc(UART0_ID, cur_tx.data);
+                cur_tx_active           = false;
             }
         }
 
