@@ -44,6 +44,7 @@ void xmit_msg(uart_inst *uart_id, const char msg[], int len)
     for(int i=0;i<len;++i){
         printf("%02x ", msg[i]);
         uart_putc(uart_id, msg[i]);
+        sleep_us(2000);
     }
     printf("\n");
 }
@@ -57,6 +58,12 @@ void test_alive()
         sleep_ms(1000);
     }
 }
+
+struct tx_element
+{
+    int     wait_us;
+    char    data;
+};
 
 int main() {
     stdio_init_all();
@@ -73,22 +80,30 @@ int main() {
     uint64_t    next_led_flip_time_us   = time_us_64() + LED_BLINK_PERIOD_US;
     int         led_state = 1;
 
+    char tx_buf[1024];
+    int tx_buf_wr_ptr   = 0;
+    int tx_buf_rd_ptr   = 0;
+
+    uint64_t    next_uart_tx_time_us    = time_us_64();
+
     while(true){
 
         //============================================================
         // Request by carrier
-        //============================================================
+        //===========================================================
         if (uart_is_readable(UART1_ID)){
             char c_from_carrier = uart_getc(UART1_ID);
-            next_led_flip_time_us  = time_us_64() + LED_BLINK_PERIOD_US;
 
+            next_led_flip_time_us  = time_us_64() + LED_BLINK_PERIOD_US;
             if (led_state != 2){
                 ledStrip.fill( WS2812::RGB(0, 64, 0) );
                 ledStrip.show();
             }
             led_state   = 2;
 
-            uart_putc(UART0_ID, c_from_carrier);
+            tx_buf[tx_buf_wr_ptr] = c_from_carrier;
+            tx_buf_wr_ptr   = (tx_buf_wr_ptr + 1) % 1024;
+
 
             bool req_msg_complete = req_parser.parse(c_from_carrier);
             if (req_msg_complete){
@@ -98,8 +113,8 @@ int main() {
                     printf("Insert Gb...\n");
                     // Insert time correction command
                     char gb_set_msg[]  = { '@',  '@', 'G', 'b', 
-                                            1,                                  // month
-                                            1,                                  // day
+                                            5,                                  // month
+                                            4,                                  // day
                                             2024>>8, 2024&255,                  // year
                                             0,                                  // hours
                                             0,                                  // minutes
@@ -112,8 +127,16 @@ int main() {
                                             0x0a };                             // terminator
 
                     gb_set_msg[sizeof(gb_set_msg)-3]  = req_parser.calc_checksum(gb_set_msg, 2, 13);
-                    xmit_msg(UART0_ID, gb_set_msg, sizeof(gb_set_msg));
 
+                    for(int i=0;i<sizeof(gb_set_msg);++i){
+                        tx_buf[tx_buf_wr_ptr]   = gb_set_msg[i];
+                        tx_buf_wr_ptr   = (tx_buf_wr_ptr + 1) % 1024;
+                    }
+                    //xmit_msg(UART0_ID, gb_set_msg, sizeof(gb_set_msg));
+
+                    next_uart_tx_time_us    = time_us_64() + 50000;
+
+                    #if 0
                     char gb_query_msg[]  = { '@',  '@', 'G', 'b', 
                                             0xff,                               // month
                                             0xff,                               // day
@@ -128,7 +151,16 @@ int main() {
                                             0x0d,                               // terminator
                                             0x0a };                             // terminator
                     xmit_msg(UART0_ID, gb_query_msg, sizeof(gb_query_msg));
+                    #endif
                 }
+            }
+        }
+
+        if (tx_buf_rd_ptr != tx_buf_wr_ptr){
+            if (time_us_64() > next_uart_tx_time_us){
+                uart_putc(UART0_ID, tx_buf[tx_buf_rd_ptr]);
+                tx_buf_rd_ptr   = (tx_buf_rd_ptr + 1) % 1024;
+                next_uart_tx_time_us    = time_us_64() + 2000;
             }
         }
 
