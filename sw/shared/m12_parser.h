@@ -5,6 +5,88 @@
 #include <string.h>
 #include <time.h>
 
+int bytes_to_int16(const char data[])
+{
+    return (data[1] + (data[0] << 8));
+}
+
+int bytes_to_int32(const char data[])
+{
+    return (data[3] + (data[2] << 8) + (data[1] << 16)+ (data[0] << 24));
+}
+
+class HaRespData
+{
+public:
+    int         month; 
+    int         day; 
+    int         year; 
+
+    int         hours;
+    int         minutes;
+    int         seconds;
+    int         frac_seconds;
+
+    int         lat;
+    int         lon;
+    int         height;
+    int         msl_height;
+
+    int         lat_unfilt;
+    int         lon_unfilt;
+    int         height_unfilt;
+    int         msl_height_unfilt;
+
+    int         speed3d;
+    int         speed2d;
+    int         heading;
+
+    int         geometry;
+
+    int         sats_visible;
+    int         sats_tracked;
+
+    void decode(const char data[])
+    {
+        int offset      = 4;
+
+        month               = data[offset];
+        day                 = data[offset+1];
+        year                = bytes_to_int16(&data[offset+2]);
+        offset += 4;
+
+        hours               = data[offset];
+        minutes             = data[offset+1];
+        seconds             = data[offset+2];
+        frac_seconds        = bytes_to_int32(&data[offset+3]);
+        offset += 7;
+
+        lat                 = bytes_to_int32(&data[offset+0]);
+        lon                 = bytes_to_int32(&data[offset+4]);
+        height              = bytes_to_int32(&data[offset+8]);
+        msl_height          = bytes_to_int32(&data[offset+12]);
+        offset += 16;
+
+        lat_unfilt          = bytes_to_int32(&data[offset+0]);
+        lon_unfilt          = bytes_to_int32(&data[offset+4]);
+        height_unfilt       = bytes_to_int32(&data[offset+8]);
+        msl_height_unfilt   = bytes_to_int32(&data[offset+12]);
+        offset += 16;
+
+        speed3d             = bytes_to_int16(&data[offset+0]);
+        speed2d             = bytes_to_int16(&data[offset+2]);
+        heading             = bytes_to_int16(&data[offset+4]);
+        offset += 6;
+
+        geometry            = bytes_to_int16(&data[offset]);
+        offset += 2;
+
+        sats_visible        = data[offset+0];
+        sats_tracked        = data[offset+1];
+        offset += 2;
+    }
+};
+
 class M12Parser
 {
 public:
